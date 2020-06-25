@@ -22,6 +22,11 @@ int main(){
         mnist_print_image(training_set.images + i);
     }
 
+    mnist_print_image(training_set.images);
+    Matrix vector = mnist_vectorize_image(training_set.images);
+    matrix_print(&vector);
+    matrix_delete(&vector);
+
     mnist_delete(&training_set);
     mnist_delete(&test_set);
 

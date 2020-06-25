@@ -79,6 +79,22 @@ void mnist_new(MnistSet * p_training_set, MnistSet * p_test_set){
     fclose(fd_test_images);
 }
 
+Matrix mnist_vectorize_image(const MnistImage * p_image){
+    int rows = p_image->rows;
+    int columns = p_image->columns;
+
+    Matrix vector = matrix_new(rows * columns, 1);
+
+    for(int x = 0; x < rows; x++){
+        for(int y = 0; y < columns; y++){
+            double intensity = p_image->points[x * columns + y];
+            matrix_set(&vector, x * columns + y, 0, intensity);
+        }
+    }
+
+    return vector;
+}
+
 void mnist_print_image(const MnistImage * p_image){
     for(int x = 0; x < p_image->rows; x++){
         for(int y = 0; y < p_image->columns; y++){
