@@ -14,6 +14,14 @@ Matrix matrix_new(int dim_x, int dim_y){
     return matrix;
 }
 
+Matrix matrix_deep_copy(const Matrix * p_matrix){
+    Matrix matrix = matrix_new(p_matrix->x, p_matrix->y);
+    for(int i = 0; i < matrix.x * matrix.y; i++){
+        matrix.p_data[i] = p_matrix->p_data[i];
+    }
+    return matrix;
+}
+
 double matrix_get(const Matrix * p_matrix, int x, int y){
     return p_matrix->p_data[x * p_matrix->y + y];
 }
@@ -25,6 +33,16 @@ void matrix_set(Matrix * p_matrix, int x, int y, double value){
 #endif
     int index = x * p_matrix->y + y;
     p_matrix->p_data[index] = value;
+}
+
+void matrix_add(Matrix * p_left, const Matrix * p_right){
+#ifdef DEBUG
+    assert(p_left->x == p_right->x);
+    assert(p_left->y == p_right->y);
+#endif
+    for(int i = 0; i < p_left->x * p_left->y; i++){
+        p_left->p_data[i] += p_right->p_data[i];
+    }
 }
 
 Matrix matrix_dot(const Matrix * p_left, const Matrix * p_right){
