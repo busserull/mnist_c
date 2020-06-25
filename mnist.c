@@ -7,6 +7,12 @@
 #include <assert.h>
 #endif
 
+typedef struct {
+    uint8_t data_bytes;
+    uint8_t dimensions;
+    uint32_t * sizes;
+} IDXHeader;
+
 #ifdef LITTLE_ENDIAN
 static void swap_endian(void * p_data, int size){
     uint8_t * p_bytes = (uint8_t *)(p_data);
@@ -18,42 +24,92 @@ static void swap_endian(void * p_data, int size){
 }
 #endif
 
-static void read_idx_header(FILE * fd, int * p_size){
-#ifdef DEBUG
+static IDXHeader read_idx_header(FILE * fd){
     uint32_t magic;
     fread((void *)&magic, 1, 4, fd);
 #ifdef LITTLE_ENDIAN
     swap_endian((void *)&magic, 4);
 #endif
-    printf("Read magic number 0x%x (%u)\n", magic, magic);
+#ifdef DEBUG
+    printf("IDX magic number: 0x%x (%u)\n", magic, magic);
 #endif
 
-    uint32_t size;
-    fread((void *)&size, 1, 4, fd);
+    IDXHeader header;
+    header.dimensions = (uint8_t)magic;
+
+    switch((uint8_t)(magic >> 1)){
+        case 0x08:
+        case 0x09:
+            header.data_bytes = 1;
+            break;
+        case 0x0b:
+            header.data_bytes = 2;
+            break;
+        case 0x0c:
+        case 0x0d:
+            header.data_bytes = 4;
+            break;
+        case 0x0e:
+            header.data_bytes = 8;
+            break;
+        default:
+            fprintf(stderr, "Unknown IDX data type\n");
+            exit(1);
+    }
+
+    header.sizes = (uint32_t *)malloc(header.dimensions * sizeof(uint32_t));
+    for(int i = 0; i < header.dimensions; i++){
+        uint32_t size;
+        fread((void *)&size, 1, 4, fd);
 #ifdef LITTLE_ENDIAN
-    swap_endian((void *)&size, 4);
+        swap_endian((void *)&size, 4);
 #endif
-    *p_size = size;
+        header.sizes[i] = size;
+    }
+
+    return header;
 }
 
-static void read_idx1(FILE * fd, int * p_size, int ** pp_data){
-    read_idx_header(fd, p_size);
+static void read_labels(FILE * fd, uint32_t * p_size, uint8_t ** pp_labels){
+    IDXHeader header = read_idx_header(fd);
+#ifdef DEBUG
+    assert(header.dimensions == 1);
+#endif
+    *p_size = header.sizes[0];
 
-    *pp_data = (int *)malloc((*p_size) * sizeof(int));
-    for(int i = 0; i < (int)*p_size; i++){
+    *pp_labels = (uint8_t *)malloc((*p_size) * sizeof(uint8_t));
+    for(int i = 0; i < *p_size; i++){
         uint8_t label;
-        fread((void *)(&label), 1, 1, fd);
-        (*pp_data)[i] = label;
+        fread((void *)&label, 1, 1, fd);
+        (*pp_labels)[i] = label;
     }
+
+    free(header.sizes);
 }
 
-static void read_idx3(FILE * fd, int * p_size, Matrix ** pp_data){
-    read_idx_header(fd, p_size);
+static void read_images(FILE * fd, Matrix ** pp_images){
+    IDXHeader header = read_idx_header(fd);
+#ifdef DEBUG
+    assert(header.dimensions == 3);
+#endif
+    uint32_t images = header.sizes[0];
+    uint32_t rows = header.sizes[1];
+    uint32_t columns = header.sizes[2];
 
-    *pp_data = (Matrix *)malloc((*p_size) * sizeof(Matrix));
-    for(int i = 0; i < (int)*p_size; i++){
-        // Parse matrices
+    *pp_images = (Matrix *)malloc(images * sizeof(Matrix));
+    for(uint32_t i = 0; i < images; i++){
+        (*pp_images)[i] = matrix_new(rows, columns);
+
+        for(uint32_t r = 0; r < rows; r++){
+            for(uint32_t c = 0; c < columns; c++){
+                uint8_t intensity;
+                fread((void *)&intensity, 1, 1, fd);
+                matrix_set((*pp_images) + i, r, c, (double)intensity);
+            }
+        }
     }
+
+    free(header.sizes);
 }
 
 MNISTData mnist_new(){
@@ -72,10 +128,10 @@ MNISTData mnist_new(){
     assert(fd_test_labels != NULL);
 #endif
 
-    read_idx1(fd_train_labels, &data.size_training, &data.training_labels);
-    read_idx1(fd_test_labels, &data.size_test, &data.test_labels);
-    read_idx3(fd_train_images, &data.size_training, &data.training_images);
-    read_idx3(fd_train_images, &data.size_test, &data.test_images);
+    read_labels(fd_train_labels, &data.size_training, &data.training_labels);
+    read_labels(fd_test_labels, &data.size_test, &data.test_labels);
+    read_images(fd_train_images, &data.training_images);
+    read_images(fd_test_images, &data.test_images);
 
     fclose(fd_train_images);
     fclose(fd_train_labels);
