@@ -19,6 +19,8 @@ typedef struct {
 
 MNISTData mnist_new();
 
+void mnist_print_image(const Matrix * p_matrix);
+
 void mnist_delete(MNISTData * p_data);
 
 #endif

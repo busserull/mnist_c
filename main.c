@@ -15,7 +15,11 @@ int main(){
     for(int i = 0; i < 20; i++){
         printf("%d ", mnist.test_labels[i]);
     }
-    printf("\n");
+    printf("\n\n");
+
+    for(int i = 0; i < 5; i++){
+        mnist_print_image(mnist.training_images + i);
+    }
 
     mnist_delete(&mnist);
 

@@ -7,9 +7,11 @@
 #include <assert.h>
 #endif
 
+#define PRINT_IMAGE_THRESHOLD 127
+
 typedef struct {
     uint8_t data_bytes;
-    uint8_t dimensions;
+    uint8_t dimension;
     uint32_t * sizes;
 } IDXHeader;
 
@@ -25,19 +27,13 @@ static void swap_endian(void * p_data, int size){
 #endif
 
 static IDXHeader read_idx_header(FILE * fd){
-    uint32_t magic;
-    fread((void *)&magic, 1, 4, fd);
-#ifdef LITTLE_ENDIAN
-    swap_endian((void *)&magic, 4);
-#endif
-#ifdef DEBUG
-    printf("IDX magic number: 0x%x (%u)\n", magic, magic);
-#endif
+    uint8_t magic[4];
+    fread((void *)magic, 1, 4, fd);
 
     IDXHeader header;
-    header.dimensions = (uint8_t)magic;
+    header.dimension = magic[3];
 
-    switch((uint8_t)(magic >> 1)){
+    switch(magic[2]){
         case 0x08:
         case 0x09:
             header.data_bytes = 1;
@@ -57,8 +53,8 @@ static IDXHeader read_idx_header(FILE * fd){
             exit(1);
     }
 
-    header.sizes = (uint32_t *)malloc(header.dimensions * sizeof(uint32_t));
-    for(int i = 0; i < header.dimensions; i++){
+    header.sizes = (uint32_t *)malloc(header.dimension * sizeof(uint32_t));
+    for(int i = 0; i < header.dimension; i++){
         uint32_t size;
         fread((void *)&size, 1, 4, fd);
 #ifdef LITTLE_ENDIAN
@@ -73,15 +69,13 @@ static IDXHeader read_idx_header(FILE * fd){
 static void read_labels(FILE * fd, uint32_t * p_size, uint8_t ** pp_labels){
     IDXHeader header = read_idx_header(fd);
 #ifdef DEBUG
-    assert(header.dimensions == 1);
+    assert(header.dimension == 1);
 #endif
     *p_size = header.sizes[0];
 
     *pp_labels = (uint8_t *)malloc((*p_size) * sizeof(uint8_t));
     for(int i = 0; i < *p_size; i++){
-        uint8_t label;
-        fread((void *)&label, 1, 1, fd);
-        (*pp_labels)[i] = label;
+        fread((*pp_labels) + i, 1, 1, fd);
     }
 
     free(header.sizes);
@@ -90,7 +84,7 @@ static void read_labels(FILE * fd, uint32_t * p_size, uint8_t ** pp_labels){
 static void read_images(FILE * fd, Matrix ** pp_images){
     IDXHeader header = read_idx_header(fd);
 #ifdef DEBUG
-    assert(header.dimensions == 3);
+    assert(header.dimension == 3);
 #endif
     uint32_t images = header.sizes[0];
     uint32_t rows = header.sizes[1];
@@ -141,9 +135,29 @@ MNISTData mnist_new(){
     return data;
 }
 
+void mnist_print_image(const Matrix * p_matrix){
+    for(int x = 0; x < p_matrix->x; x++){
+        for(int y = 0; y < p_matrix->y; y++){
+            if(matrix_get(p_matrix, x, y) > PRINT_IMAGE_THRESHOLD){
+                printf("x");
+            }
+            else{
+                printf(" ");
+            }
+        }
+        printf("\n");
+    }
+}
+
 void mnist_delete(MNISTData * p_data){
     free(p_data->training_labels);
     free(p_data->test_labels);
+    for(int i = 0; i < p_data->size_training; i++){
+        matrix_delete(p_data->training_images + i);
+    }
+    for(int i = 0; i < p_data->size_test; i++){
+        matrix_delete(p_data->test_images + i);
+    }
     free(p_data->training_images);
     free(p_data->test_images);
     p_data->size_training = 0;
