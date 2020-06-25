@@ -7,138 +7,82 @@
 #include <assert.h>
 #endif
 
-#define PRINT_IMAGE_THRESHOLD 127
+#define IMAGE_THRESHOLD 127
 
-typedef struct {
-    uint8_t data_bytes;
+static uint32_t read_size(FILE * fd, int dimension){
+    fseek(fd, dimension * 4 + 4, SEEK_SET);
+    uint8_t size_bytes[4];
+    fread((void *)size_bytes, 1, 4, fd);
+
+    uint32_t size = 0x00000000
+        | (size_bytes[0] << 24)
+        | (size_bytes[1] << 16)
+        | (size_bytes[2] << 8)
+        | (size_bytes[3] << 0)
+        ;
+
+    return size;
+}
+
+static void skip_header(FILE * fd){
+    fseek(fd, 3, SEEK_SET);
     uint8_t dimension;
-    uint32_t * sizes;
-} IDXHeader;
-
-#ifdef LITTLE_ENDIAN
-static void swap_endian(void * p_data, int size){
-    uint8_t * p_bytes = (uint8_t *)(p_data);
-    for(int i = 0; i < size / 2; i++){
-        uint8_t swap = p_bytes[i];
-        p_bytes[i] = p_bytes[size - 1 - i];
-        p_bytes[size - 1 - i] = swap;
-    }
-}
-#endif
-
-static IDXHeader read_idx_header(FILE * fd){
-    uint8_t magic[4];
-    fread((void *)magic, 1, 4, fd);
-
-    IDXHeader header;
-    header.dimension = magic[3];
-
-    switch(magic[2]){
-        case 0x08:
-        case 0x09:
-            header.data_bytes = 1;
-            break;
-        case 0x0b:
-            header.data_bytes = 2;
-            break;
-        case 0x0c:
-        case 0x0d:
-            header.data_bytes = 4;
-            break;
-        case 0x0e:
-            header.data_bytes = 8;
-            break;
-        default:
-            fprintf(stderr, "Unknown IDX data type\n");
-            exit(1);
-    }
-
-    header.sizes = (uint32_t *)malloc(header.dimension * sizeof(uint32_t));
-    for(int i = 0; i < header.dimension; i++){
-        uint32_t size;
-        fread((void *)&size, 1, 4, fd);
-#ifdef LITTLE_ENDIAN
-        swap_endian((void *)&size, 4);
-#endif
-        header.sizes[i] = size;
-    }
-
-    return header;
+    fread((void *)&dimension, 1, 1, fd);
+    fseek(fd, 4 + dimension * 4, SEEK_SET);
 }
 
-static void read_labels(FILE * fd, uint32_t * p_size, uint8_t ** pp_labels){
-    IDXHeader header = read_idx_header(fd);
+static MnistSet make_set(FILE * fd_labels, FILE * fd_images){
 #ifdef DEBUG
-    assert(header.dimension == 1);
+    assert(fd_labels != NULL);
+    assert(fd_images != NULL);
 #endif
-    *p_size = header.sizes[0];
 
-    *pp_labels = (uint8_t *)malloc((*p_size) * sizeof(uint8_t));
-    for(int i = 0; i < *p_size; i++){
-        fread((*pp_labels) + i, 1, 1, fd);
+    uint32_t labels_size = read_size(fd_labels, 0);
+#ifdef DEBUG
+    uint32_t images_size = read_size(fd_images, 0);
+    assert(labels_size == images_size);
+#endif
+    uint32_t rows = read_size(fd_images, 1);
+    uint32_t columns = read_size(fd_images, 2);
+
+    MnistSet set;
+    set.size = labels_size;
+    set.labels = (MnistLabel *)malloc(set.size * sizeof(MnistLabel));
+    set.images = (MnistImage *)malloc(set.size * sizeof(MnistImage));
+
+    skip_header(fd_labels);
+    fread((void *)set.labels, 1, set.size, fd_labels);
+
+    skip_header(fd_images);
+    for(uint32_t i = 0; i < set.size; i++){
+        set.images[i].rows = rows;
+        set.images[i].columns = columns;
+        set.images[i].points = (uint8_t *)malloc(rows * columns);
+        fread((void *)set.images[i].points, 1, rows * columns, fd_images);
     }
 
-    free(header.sizes);
+    return set;
 }
 
-static void read_images(FILE * fd, Matrix ** pp_images){
-    IDXHeader header = read_idx_header(fd);
-#ifdef DEBUG
-    assert(header.dimension == 3);
-#endif
-    uint32_t images = header.sizes[0];
-    uint32_t rows = header.sizes[1];
-    uint32_t columns = header.sizes[2];
+void mnist_new(MnistSet * p_training_set, MnistSet * p_test_set){
+    FILE * fd_training_labels = fopen(MNIST_TRAINING_LABELS, "r");
+    FILE * fd_training_images = fopen(MNIST_TRAINING_IMAGES, "r");
+    *p_training_set = make_set(fd_training_labels, fd_training_images);
 
-    *pp_images = (Matrix *)malloc(images * sizeof(Matrix));
-    for(uint32_t i = 0; i < images; i++){
-        (*pp_images)[i] = matrix_new(rows, columns);
+    FILE * fd_test_labels = fopen(MNIST_TEST_LABELS, "r");
+    FILE * fd_test_images = fopen(MNIST_TEST_IMAGES, "r");
+    *p_test_set = make_set(fd_test_labels, fd_test_images);
 
-        for(uint32_t r = 0; r < rows; r++){
-            for(uint32_t c = 0; c < columns; c++){
-                uint8_t intensity;
-                fread((void *)&intensity, 1, 1, fd);
-                matrix_set((*pp_images) + i, r, c, (double)intensity);
-            }
-        }
-    }
-
-    free(header.sizes);
-}
-
-MNISTData mnist_new(){
-    MNISTData data;
-    data.size_training = 0;
-    data.size_test = 0;
-
-    FILE * fd_train_images = fopen(MNIST_TRAINING_IMAGE_FILE, "r");
-    FILE * fd_train_labels = fopen(MNIST_TRAINING_LABEL_FILE, "r");
-    FILE * fd_test_images = fopen(MNIST_TEST_IMAGE_FILE, "r");
-    FILE * fd_test_labels = fopen(MNIST_TEST_LABEL_FILE, "r");
-#ifdef DEBUG
-    assert(fd_train_images != NULL);
-    assert(fd_train_labels != NULL);
-    assert(fd_test_images != NULL);
-    assert(fd_test_labels != NULL);
-#endif
-
-    read_labels(fd_train_labels, &data.size_training, &data.training_labels);
-    read_labels(fd_test_labels, &data.size_test, &data.test_labels);
-    read_images(fd_train_images, &data.training_images);
-    read_images(fd_test_images, &data.test_images);
-
-    fclose(fd_train_images);
-    fclose(fd_train_labels);
-    fclose(fd_test_images);
+    fclose(fd_training_labels);
+    fclose(fd_training_images);
     fclose(fd_test_labels);
-
-    return data;
+    fclose(fd_test_images);
 }
 
-void mnist_print_image(const Matrix * p_matrix){
-    for(int x = 0; x < p_matrix->x; x++){
-        for(int y = 0; y < p_matrix->y; y++){
-            if(matrix_get(p_matrix, x, y) > PRINT_IMAGE_THRESHOLD){
+void mnist_print_image(const MnistImage * p_image){
+    for(int x = 0; x < p_image->rows; x++){
+        for(int y = 0; y < p_image->columns; y++){
+            if(p_image->points[x * p_image->columns + y] > IMAGE_THRESHOLD){
                 printf("x");
             }
             else{
@@ -149,17 +93,11 @@ void mnist_print_image(const Matrix * p_matrix){
     }
 }
 
-void mnist_delete(MNISTData * p_data){
-    free(p_data->training_labels);
-    free(p_data->test_labels);
-    for(int i = 0; i < p_data->size_training; i++){
-        matrix_delete(p_data->training_images + i);
+void mnist_delete(MnistSet * p_data_set){
+    free(p_data_set->labels);
+    for(int i = 0; i < p_data_set->size; i++){
+        free(p_data_set->images[i].points);
     }
-    for(int i = 0; i < p_data->size_test; i++){
-        matrix_delete(p_data->test_images + i);
-    }
-    free(p_data->training_images);
-    free(p_data->test_images);
-    p_data->size_training = 0;
-    p_data->size_test = 0;
+    free(p_data_set->images);
+    p_data_set->size = 0;
 }

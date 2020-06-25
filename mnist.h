@@ -3,24 +3,29 @@
 #include "matrix.h"
 #include <stdint.h>
 
-#define MNIST_TRAINING_IMAGE_FILE "mnist/train-images.idx3-ubyte"
-#define MNIST_TRAINING_LABEL_FILE "mnist/train-labels.idx1-ubyte"
-#define MNIST_TEST_IMAGE_FILE "mnist/t10k-images.idx3-ubyte"
-#define MNIST_TEST_LABEL_FILE "mnist/t10k-labels.idx1-ubyte"
+#define MNIST_TRAINING_IMAGES "mnist/train-images.idx3-ubyte"
+#define MNIST_TRAINING_LABELS "mnist/train-labels.idx1-ubyte"
+#define MNIST_TEST_IMAGES "mnist/t10k-images.idx3-ubyte"
+#define MNIST_TEST_LABELS "mnist/t10k-labels.idx1-ubyte"
+
+typedef uint8_t MnistLabel;
 
 typedef struct {
-    uint32_t size_training;
-    uint32_t size_test;
-    uint8_t * training_labels;
-    uint8_t * test_labels;
-    Matrix * training_images;
-    Matrix * test_images;
-} MNISTData;
+    uint8_t rows;
+    uint8_t columns;
+    uint8_t * points;
+} MnistImage;
 
-MNISTData mnist_new();
+typedef struct {
+    uint32_t size;
+    MnistLabel * labels;
+    MnistImage * images;
+} MnistSet;
 
-void mnist_print_image(const Matrix * p_matrix);
+void mnist_new(MnistSet * p_training_set, MnistSet * p_test_set);
 
-void mnist_delete(MNISTData * p_data);
+void mnist_print_image(const MnistImage * p_image);
+
+void mnist_delete(MnistSet * p_data_set);
 
 #endif
