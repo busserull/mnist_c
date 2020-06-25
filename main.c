@@ -1,30 +1,23 @@
 #include "matrix.h"
+#include "mnist.h"
+#include <stdio.h>
 
 int main(){
-    Matrix a = matrix_new(3, 2);
-    matrix_set(&a, 0, 0, 3);
-    matrix_set(&a, 0, 1, 2);
-    matrix_set(&a, 1, 0, 1);
-    matrix_set(&a, 1, 1, -5);
-    matrix_set(&a, 2, 0, -2);
-    matrix_set(&a, 2, 1, 1);
+    MNISTData mnist = mnist_new();
 
-    Matrix b = matrix_new(2, 2);
-    matrix_set(&b, 0, 0, 2);
-    matrix_set(&b, 0, 1, -4);
-    matrix_set(&b, 1, 0, -3);
-    matrix_set(&b, 1, 1, 6);
+    printf("Training size: %d\n", mnist.size_training);
+    for(int i = 0; i < 20; i++){
+        printf("%d ", mnist.training_labels[i]);
+    }
+    printf("\n");
 
-    matrix_print(&a);
-    matrix_print(&b);
+    printf("Test size: %d\n", mnist.size_test);
+    for(int i = 0; i < 20; i++){
+        printf("%d ", mnist.test_labels[i]);
+    }
+    printf("\n");
 
-    Matrix c = matrix_dot(&a, &b);
-
-    matrix_print(&c);
-
-    matrix_delete(&a);
-    matrix_delete(&b);
-    matrix_delete(&c);
+    mnist_delete(&mnist);
 
     return 0;
 }
