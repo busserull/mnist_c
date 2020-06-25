@@ -14,6 +14,10 @@ Matrix matrix_new(int dim_x, int dim_y){
     return matrix;
 }
 
+double matrix_get(const Matrix * p_matrix, int x, int y){
+    return p_matrix->p_data[x * p_matrix->y + y];
+}
+
 void matrix_set(Matrix * p_matrix, int x, int y, double value){
 #ifdef DEBUG
     assert(x >= 0 && x < p_matrix->x);
@@ -23,7 +27,7 @@ void matrix_set(Matrix * p_matrix, int x, int y, double value){
     p_matrix->p_data[index] = value;
 }
 
-Matrix matrix_dot(Matrix * p_left, Matrix * p_right){
+Matrix matrix_dot(const Matrix * p_left, const Matrix * p_right){
 #ifdef DEBUG
     assert(p_left->y == p_right->x);
 #endif
@@ -43,7 +47,7 @@ Matrix matrix_dot(Matrix * p_left, Matrix * p_right){
     return product;
 }
 
-void matrix_print(Matrix * p_matrix){
+void matrix_print(const Matrix * p_matrix){
     for(int x = 0; x < p_matrix->x; x++){
         for(int y = 0; y < p_matrix->y; y++){
             double value = p_matrix->p_data[x * p_matrix->y + y];
