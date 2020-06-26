@@ -1,6 +1,6 @@
 SRC := main.c matrix.c mnist.c network.c
 CC := gcc
-CFLAGS := -DLITTLE_ENDIAN -DDEBUG -g -fsanitize=address
+CFLAGS := -DLITTLE_ENDIAN -DDEBUG -g -fsanitize=address -lm
 BUILD := build
 
 a.out : $(SRC:%.c=$(BUILD)/%.o)

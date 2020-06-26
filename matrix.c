@@ -56,13 +56,19 @@ Matrix matrix_dot(const Matrix left, const Matrix right){
     return product;
 }
 
-void matrix_add_inplace(Matrix left, const Matrix right){
+void matrix_inplace_add(Matrix left, const Matrix right){
 #ifdef DEBUG
     assert(left.x == right.x);
     assert(left.y == right.y);
 #endif
     for(int i = 0; i < left.x * left.y; i++){
         left.data[i] += right.data[i];
+    }
+}
+
+void matrix_inplace_apply(Matrix matrix, double (*function)(double)){
+    for(int i = 0; i < matrix.x * matrix.y; i++){
+        matrix.data[i] = function(matrix.data[i]);
     }
 }
 

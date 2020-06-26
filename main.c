@@ -2,13 +2,18 @@
 #include "mnist.h"
 #include "network.h"
 #include <stdio.h>
+#include <math.h>
 
 void set_w(Network *, int, Matrix);
 void set_b(Network *, int, Matrix);
 
+double sigmoid(double v){
+    return 1.0 / (1.0 + exp(-v));
+}
+
 int main(){
     int layers[] = {2, 3, 1};
-    Network network = network_new(3, layers, NULL, NULL);
+    Network network = network_new(3, layers, sigmoid, NULL);
 
     Matrix w0 = matrix_new(3, 2);
     Matrix w1 = matrix_new(1, 3);

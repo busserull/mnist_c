@@ -41,8 +41,8 @@ Matrix network_feed(const Network network, const Matrix vector){
         Matrix next = matrix_dot(network.weights[i], act);
         matrix_delete(&act);
         act = next;
-        matrix_add_inplace(act, network.biases[i]);
-        // Apply activation function
+        matrix_inplace_add(act, network.biases[i]);
+        matrix_inplace_apply(act, network.activation_function);
     }
 
     return act;
