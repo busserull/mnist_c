@@ -8,13 +8,18 @@ typedef struct {
     int layers;
     Matrix * weights;
     Matrix * biases;
-    ScalarFunc activation;
+    ScalarFunc activation_function;
     ScalarFunc activation_prime;
 } Network;
 
-Network network_new(int layers, int * layer_sizes);
+Network network_new(
+    int layers,
+    int * layer_sizes,
+    ScalarFunc activation_function,
+    ScalarFunc activation_prime
+);
 
-Matrix network_feed(const Network * p_network, const Matrix * p_vector);
+Matrix network_feed(const Network network, const Matrix vector);
 
 void network_delete(Network * p_network);
 

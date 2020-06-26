@@ -6,69 +6,70 @@
 #include <assert.h>
 #endif
 
-Matrix matrix_new(int dim_x, int dim_y){
+Matrix matrix_new(int rows, int columns){
     Matrix matrix;
-    matrix.x = dim_x;
-    matrix.y = dim_y;
-    matrix.p_data = (double *)malloc(dim_x * dim_y * sizeof(double));
+    matrix.x = rows;
+    matrix.y = columns;
+    matrix.data = (double *)malloc(rows * columns * sizeof(double));
     return matrix;
 }
 
-Matrix matrix_deep_copy(const Matrix * p_matrix){
-    Matrix matrix = matrix_new(p_matrix->x, p_matrix->y);
+Matrix matrix_deep_copy(const Matrix matrix){
+    Matrix copy = matrix_new(matrix.x, matrix.y);
     for(int i = 0; i < matrix.x * matrix.y; i++){
-        matrix.p_data[i] = p_matrix->p_data[i];
+        copy.data[i] = matrix.data[i];
     }
-    return matrix;
+    return copy;
 }
 
-double matrix_get(const Matrix * p_matrix, int x, int y){
-    return p_matrix->p_data[x * p_matrix->y + y];
-}
-
-void matrix_set(Matrix * p_matrix, int x, int y, double value){
+double matrix_get(const Matrix matrix, int x, int y){
 #ifdef DEBUG
-    assert(x >= 0 && x < p_matrix->x);
-    assert(y >= 0 && y < p_matrix->y);
+    assert(x >= 0 && x < matrix.x);
+    assert(y >= 0 && y < matrix.y);
 #endif
-    int index = x * p_matrix->y + y;
-    p_matrix->p_data[index] = value;
+    return matrix.data[x * matrix.y + y];
 }
 
-void matrix_add(Matrix * p_left, const Matrix * p_right){
+void matrix_set(Matrix matrix, int x, int y, double value){
 #ifdef DEBUG
-    assert(p_left->x == p_right->x);
-    assert(p_left->y == p_right->y);
+    assert(x >= 0 && x < matrix.x);
+    assert(y >= 0 && y < matrix.y);
 #endif
-    for(int i = 0; i < p_left->x * p_left->y; i++){
-        p_left->p_data[i] += p_right->p_data[i];
-    }
+    matrix.data[x * matrix.y + y] = value;
 }
 
-Matrix matrix_dot(const Matrix * p_left, const Matrix * p_right){
+Matrix matrix_dot(const Matrix left, const Matrix right){
 #ifdef DEBUG
-    assert(p_left->y == p_right->x);
+    assert(left.y == right.x);
 #endif
-    Matrix product = matrix_new(p_left->x, p_right->y);
+    Matrix product = matrix_new(left.x, right.y);
     for(int x = 0; x < product.x; x++){
         for(int y = 0; y < product.y; y++){
-            product.p_data[x * product.y + y] = 0.0;
-
-            for(int i = 0; i < p_left->y; i++){
-                double v_left = p_left->p_data[x * p_left->y + i];
-                double v_right = p_right->p_data[i * p_right->y + y];
-                product.p_data[x * product.y + y] += v_left * v_right;
+            product.data[x * product.y + y] = 0.0;
+            for(int i = 0; i < left.y; i++){
+                double v_left = left.data[x * left.y + i];
+                double v_right = right.data[i * right.y + y];
+                product.data[x * product.y + y] += v_left * v_right;
             }
         }
     }
-
     return product;
 }
 
-void matrix_print(const Matrix * p_matrix){
-    for(int x = 0; x < p_matrix->x; x++){
-        for(int y = 0; y < p_matrix->y; y++){
-            double value = p_matrix->p_data[x * p_matrix->y + y];
+void matrix_add_inplace(Matrix left, const Matrix right){
+#ifdef DEBUG
+    assert(left.x == right.x);
+    assert(left.y == right.y);
+#endif
+    for(int i = 0; i < left.x * left.y; i++){
+        left.data[i] += right.data[i];
+    }
+}
+
+void matrix_print(const Matrix matrix){
+    for(int x = 0; x < matrix.x; x++){
+        for(int y = 0; y < matrix.y; y++){
+            double value = matrix.data[x * matrix.y + y];
             printf("%8.2f", value);
         }
         printf("\n");
@@ -77,7 +78,7 @@ void matrix_print(const Matrix * p_matrix){
 }
 
 void matrix_delete(Matrix * p_matrix){
-    free(p_matrix->p_data);
+    free(p_matrix->data);
     p_matrix->x = 0;
     p_matrix->y = 0;
 }
