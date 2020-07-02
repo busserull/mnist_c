@@ -11,6 +11,30 @@ void set_b(Network * p_network, int layer, Matrix b){
     p_network->biases[layer] = b;
 }
 
+static void network_backpropagate(
+    const Network network,
+    const Matrix input,
+    Matrix ** p_gradient_weights,
+    Matrix ** p_gradient_biases
+){
+    Matrix * kernels = (Matrix *)malloc((network.layers - 1) * sizeof(Matrix));
+    Matrix * acts = (Matrix *)malloc((network.layers - 1) * sizeof(Matrix));
+
+    Matrix prev = matrix_deep_copy(input);
+    for(int i = 0; i < network.layers - 1; i++){
+        Matrix kernel = matrix_dot(network.weights[i], prev);
+        matrix_inplace_add(kernel, network.biases[i]);
+        kernels[i] = kernel;
+
+        Matrix act = matrix_deep_copy(kernel);
+        matrix_inplace_apply(act, network.activation_function);
+        acts[i] = act;
+
+        matrix_delete(&prev);
+        prev = act;
+    }
+}
+
 Network network_new(
     int layers,
     int * layer_sizes,
@@ -46,6 +70,15 @@ Matrix network_feed(const Network network, const Matrix vector){
     }
 
     return act;
+}
+
+void network_learn(
+    Network network,
+    const Matrix * mini_batch,
+    int mini_batch_size,
+    double learning_rate
+){
+
 }
 
 void network_delete(Network * p_network){

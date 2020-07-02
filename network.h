@@ -19,8 +19,20 @@ Network network_new(
     ScalarFunc activation_prime
 );
 
-Matrix network_feed(const Network network, const Matrix vector);
+Matrix network_feed(
+    const Network network,
+    const Matrix vector
+);
 
-void network_delete(Network * p_network);
+void network_learn(
+    Network network,
+    const Matrix * mini_batch,
+    int mini_batch_size,
+    double learing_rate
+);
+
+void network_delete(
+    Network * p_network
+);
 
 #endif
