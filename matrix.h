@@ -23,6 +23,8 @@ void matrix_inplace_add(Matrix left, const Matrix right);
 
 void matrix_inplace_sub(Matrix left, const Matrix right);
 
+void matrix_inplace_scale(Matrix matrix, double factor);
+
 void matrix_inplace_hadamard(Matrix left, const Matrix right);
 
 void matrix_inplace_apply(Matrix matrix, double (*function)(double));

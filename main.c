@@ -27,6 +27,8 @@ int main(){
 
     matrix_print(A);
     matrix_print(At);
+    matrix_inplace_scale(At, 2.0);
+    matrix_print(At);
 
     matrix_delete(&A);
     matrix_delete(&At);

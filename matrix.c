@@ -88,6 +88,12 @@ void matrix_inplace_sub(Matrix left, const Matrix right){
     }
 }
 
+void matrix_inplace_scale(Matrix matrix, double factor){
+    for(int i = 0; i < matrix.x * matrix.y; i++){
+        matrix.data[i] *= factor;
+    }
+}
+
 void matrix_inplace_hadamard(Matrix left, const Matrix right){
 #ifdef DEBUG
     assert(left.x == right.x);
