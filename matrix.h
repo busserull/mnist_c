@@ -17,7 +17,13 @@ void matrix_set(Matrix matrix, int x, int y, double value);
 
 Matrix matrix_dot(const Matrix left, const Matrix right);
 
+Matrix matrix_transpose(Matrix matrix);
+
 void matrix_inplace_add(Matrix left, const Matrix right);
+
+void matrix_inplace_sub(Matrix left, const Matrix right);
+
+void matrix_inplace_hadamard(Matrix left, const Matrix right);
 
 void matrix_inplace_apply(Matrix matrix, double (*function)(double));
 

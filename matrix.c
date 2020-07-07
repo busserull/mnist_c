@@ -56,6 +56,18 @@ Matrix matrix_dot(const Matrix left, const Matrix right){
     return product;
 }
 
+Matrix matrix_transpose(Matrix matrix){
+    Matrix transpose = matrix_new(matrix.y, matrix.x);
+    for(int x = 0; x < transpose.x; x++){
+        for(int y = 0; y < transpose.y; y++){
+            int ti = x * transpose.y + y;
+            int mi = y * matrix.y + x;
+            transpose.data[ti] = matrix.data[mi];
+        }
+    }
+    return transpose;
+}
+
 void matrix_inplace_add(Matrix left, const Matrix right){
 #ifdef DEBUG
     assert(left.x == right.x);
@@ -63,6 +75,26 @@ void matrix_inplace_add(Matrix left, const Matrix right){
 #endif
     for(int i = 0; i < left.x * left.y; i++){
         left.data[i] += right.data[i];
+    }
+}
+
+void matrix_inplace_sub(Matrix left, const Matrix right){
+#ifdef DEBUG
+    assert(left.x == right.x);
+    assert(left.y == right.y);
+#endif
+    for(int i = 0; i < left.x * left.y; i++){
+        left.data[i] -= right.data[i];
+    }
+}
+
+void matrix_inplace_hadamard(Matrix left, const Matrix right){
+#ifdef DEBUG
+    assert(left.x == right.x);
+    assert(left.y == right.y);
+#endif
+    for(int i = 0; i < left.x * left.y; i++){
+        left.data[i] *= right.data[i];
     }
 }
 
