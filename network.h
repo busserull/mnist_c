@@ -27,6 +27,7 @@ Matrix network_feed(
 void network_learn(
     Network network,
     const Matrix * mini_batch,
+    const Matrix * mini_batch_labels,
     int mini_batch_size,
     double learing_rate
 );
