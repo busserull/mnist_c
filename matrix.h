@@ -11,6 +11,8 @@ Matrix matrix_new(int rows, int columns);
 
 Matrix matrix_deep_copy(const Matrix matrix);
 
+Matrix matrix_zero_from(const Matrix matrix);
+
 double matrix_get(const Matrix matrix, int x, int y);
 
 void matrix_set(Matrix matrix, int x, int y, double value);
@@ -18,6 +20,10 @@ void matrix_set(Matrix matrix, int x, int y, double value);
 Matrix matrix_dot(const Matrix left, const Matrix right);
 
 Matrix matrix_transpose(Matrix matrix);
+
+void matrix_inplace_argmax(Matrix matrix);
+
+void matrix_inplace_scramble(Matrix matrix);
 
 void matrix_inplace_add(Matrix left, const Matrix right);
 
