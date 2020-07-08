@@ -26,6 +26,8 @@ void mnist_new(MnistSet * p_training_set, MnistSet * p_test_set);
 
 Matrix mnist_vectorize_image(const MnistImage image);
 
+Matrix mnist_vectorize_label(const MnistLabel label);
+
 void mnist_print_image(const MnistImage image);
 
 void mnist_delete(MnistSet * p_data_set);

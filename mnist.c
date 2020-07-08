@@ -95,6 +95,15 @@ Matrix mnist_vectorize_image(const MnistImage image){
     return vector;
 }
 
+Matrix mnist_vectorize_label(const MnistLabel label){
+    Matrix vector = matrix_new(10, 1);
+    for(int x = 0; x < 10; x++){
+        matrix_set(vector, x, 0, 0.0);
+    }
+    matrix_set(vector, label, 0, 1.0);
+    return vector;
+}
+
 void mnist_print_image(const MnistImage image){
     for(int x = 0; x < image.rows; x++){
         for(int y = 0; y < image.columns; y++){
