@@ -24,6 +24,8 @@ typedef struct {
 
 void mnist_new(MnistSet * p_training_set, MnistSet * p_test_set);
 
+void mnist_shuffle(MnistSet data_set);
+
 Matrix mnist_vectorize_image(const MnistImage image);
 
 Matrix mnist_vectorize_label(const MnistLabel label);

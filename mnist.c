@@ -79,6 +79,20 @@ void mnist_new(MnistSet * p_training_set, MnistSet * p_test_set){
     fclose(fd_test_images);
 }
 
+void mnist_shuffle(MnistSet data_set){
+    for(int i = 0; i < data_set.size; i++){
+        int j = i + (rand() % (data_set.size - i));
+        MnistImage ti = data_set.images[i];
+        MnistLabel tl = data_set.labels[i];
+
+        data_set.images[i] = data_set.images[j];
+        data_set.images[j] = ti;
+
+        data_set.labels[i] = data_set.labels[j];
+        data_set.labels[j] = tl;
+    }
+}
+
 Matrix mnist_vectorize_image(const MnistImage image){
     int rows = image.rows;
     int columns = image.columns;
