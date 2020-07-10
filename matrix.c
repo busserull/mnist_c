@@ -1,4 +1,5 @@
 #include "matrix.h"
+#include "random.h"
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -95,10 +96,8 @@ void matrix_inplace_argmax(Matrix matrix){
 }
 
 void matrix_inplace_scramble(Matrix matrix){
-    int half_range = RAND_MAX / 2;
     for(int i = 0; i < matrix.x * matrix.y; i++){
-        int uniform_zero_mean = rand() - half_range;
-        matrix.data[i] = (double)uniform_zero_mean / half_range;
+        matrix.data[i] = random_normal(0.0, 1.0);
     }
 }
 

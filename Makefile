@@ -1,4 +1,4 @@
-SRC := main.c matrix.c mnist.c network.c
+SRC := main.c matrix.c mnist.c network.c random.c
 CC := gcc
 CFLAGS := -DLITTLE_ENDIAN -DDEBUG -g -fsanitize=address -lm
 BUILD := build
