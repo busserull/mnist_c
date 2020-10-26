@@ -1,15 +1,9 @@
 #include "network.h"
 #include <stdlib.h>
 
-void set_w(Network * p_network, int layer, Matrix w){
-    matrix_delete(p_network->weights + layer);
-    p_network->weights[layer] = w;
-}
-
-void set_b(Network * p_network, int layer, Matrix b){
-    matrix_delete(p_network->biases + layer);
-    p_network->biases[layer] = b;
-}
+#ifdef DEBUG
+#include <assert.h>
+#endif
 
 static void network_backpropagate(
     const Network network,
@@ -19,8 +13,8 @@ static void network_backpropagate(
     Matrix * delta_nabla_b
 ){
     int nabla_size = network.layers - 1;
-    Matrix * kernels = (Matrix *)malloc(nabla_size * sizeof(Matrix));
-    Matrix * acts = (Matrix *)malloc((nabla_size + 1) * sizeof(Matrix));
+    Matrix * kernels = (Matrix *)calloc(nabla_size, sizeof(Matrix));
+    Matrix * acts = (Matrix *)calloc(nabla_size + 1, sizeof(Matrix));
 
     Matrix act = matrix_deep_copy(input);
     acts[0] = act;
@@ -36,36 +30,68 @@ static void network_backpropagate(
         acts[i + 1] = act;
     }
 
+#ifdef DEBUG
+    for(int i = 0; i < nabla_size; i++){
+        assert(kernels[i].x != 0 && kernels[i].y != 0);
+        assert(kernels[i].data != NULL);
+        assert(acts[i].x != 0 && acts[i].y != 0);
+        assert(acts[i].data != NULL);
+    }
+    assert(acts[nabla_size].x != 0 && acts[nabla_size].y != 0);
+    assert(acts[nabla_size].data != NULL);
+#endif
+
     /* Propagate backward */
+#ifdef DEBUG
+    for(int i = 0; i < nabla_size; i++){
+        assert(delta_nabla_w[i].x == 0 && delta_nabla_w[i].y == 0);
+        assert(delta_nabla_w[i].data == NULL);
+        assert(delta_nabla_b[i].x == 0 && delta_nabla_b[i].y == 0);
+        assert(delta_nabla_b[i].data == NULL);
+    }
+#endif
+
     Matrix error = matrix_deep_copy(acts[nabla_size]);
     matrix_inplace_sub(error, correct_output); // Cost derivative
 
     Matrix kernel_prime = matrix_deep_copy(kernels[nabla_size - 1]);
     matrix_inplace_apply(kernel_prime, network.activation_prime);
-    matrix_inplace_hadamard(error, kernel_prime);
-    matrix_delete(&kernel_prime);
 
-    Matrix a_t = matrix_transpose(acts[nabla_size - 1]);
-    delta_nabla_w[nabla_size - 1] = matrix_dot(error, a_t);
-    delta_nabla_b[nabla_size - 1] = error;
-    matrix_delete(&a_t);
+    matrix_inplace_hadamard(error, kernel_prime);
+    Matrix prev_act_t = matrix_transpose(acts[nabla_size - 1]);
+    delta_nabla_w[nabla_size - 1] = matrix_dot(error, prev_act_t);
+    delta_nabla_b[nabla_size - 1] = matrix_deep_copy(error);
+
+    matrix_delete(&error);
+    matrix_delete(&kernel_prime);
+    matrix_delete(&prev_act_t);
 
     for(int i = nabla_size - 2; i >= 0; i--){
         kernel_prime = matrix_deep_copy(kernels[i]);
         matrix_inplace_apply(kernel_prime, network.activation_prime);
 
         Matrix w_t = matrix_transpose(network.weights[i + 1]);
-        error = matrix_dot(w_t, error);
+        error = matrix_dot(w_t, delta_nabla_b[i + 1]);
+
         matrix_inplace_hadamard(error, kernel_prime);
+        prev_act_t = matrix_transpose(acts[i]);
+        delta_nabla_w[i] = matrix_dot(error, prev_act_t);
+        delta_nabla_b[i] = matrix_deep_copy(error);
 
-        a_t = matrix_transpose(acts[i]);
-        delta_nabla_w[i] = matrix_dot(error, a_t);
-        delta_nabla_b[i] = error;
-
+        matrix_delete(&error);
         matrix_delete(&kernel_prime);
         matrix_delete(&w_t);
-        matrix_delete(&a_t);
+        matrix_delete(&prev_act_t);
     }
+
+#ifdef DEBUG
+    for(int i = 0; i < nabla_size; i++){
+        assert(delta_nabla_w[i].x != 0 && delta_nabla_w[i].y != 0);
+        assert(delta_nabla_w[i].data != NULL);
+        assert(delta_nabla_b[i].x != 0 && delta_nabla_b[i].y != 0);
+        assert(delta_nabla_b[i].data != NULL);
+    }
+#endif
 
     /* Cleanup */
     for(int i = 0; i < nabla_size; i++){
@@ -104,8 +130,8 @@ Network network_new(
     return network;
 }
 
-Matrix network_feed(const Network network, const Matrix vector){
-    Matrix act = matrix_deep_copy(vector);
+Matrix network_feed(const Network network, const Matrix input){
+    Matrix act = matrix_deep_copy(input);
 
     for(int i = 0; i < network.layers - 1; i++){
         Matrix next = matrix_dot(network.weights[i], act);
@@ -126,14 +152,15 @@ void network_learn(
     double learning_rate
 ){
     int nabla_size = network.layers - 1;
-    Matrix * nabla_w = (Matrix *)malloc(nabla_size * sizeof(Matrix));
-    Matrix * nabla_b = (Matrix *)malloc(nabla_size * sizeof(Matrix));
+    Matrix * nabla_w = (Matrix *)calloc(nabla_size, sizeof(Matrix));
+    Matrix * nabla_b = (Matrix *)calloc(nabla_size, sizeof(Matrix));
     for(int i = 0; i < nabla_size; i++){
         nabla_w[i] = matrix_zero_from(network.weights[i]);
         nabla_b[i] = matrix_zero_from(network.biases[i]);
     }
-    Matrix * delta_nabla_w = (Matrix *)malloc(nabla_size * sizeof(Matrix));
-    Matrix * delta_nabla_b = (Matrix *)malloc(nabla_size * sizeof(Matrix));
+
+    Matrix * delta_nabla_w = (Matrix *)calloc(nabla_size, sizeof(Matrix));
+    Matrix * delta_nabla_b = (Matrix *)calloc(nabla_size, sizeof(Matrix));
 
     for(int i = 0; i < mini_batch_size; i++){
         network_backpropagate(
@@ -143,7 +170,8 @@ void network_learn(
             delta_nabla_w,
             delta_nabla_b
         );
-        for(int j = 0; j < network.layers - 1; j++){
+
+        for(int j = 0; j < nabla_size; j++){
             matrix_inplace_add(nabla_w[j], delta_nabla_w[j]);
             matrix_inplace_add(nabla_b[j], delta_nabla_b[j]);
             matrix_delete(delta_nabla_w + j);
@@ -151,11 +179,11 @@ void network_learn(
         }
     }
 
-    for(int i = 0; i < network.layers - 1; i++){
-        matrix_inplace_scale(nabla_w[i], learning_rate);
-        matrix_inplace_scale(nabla_b[i], learning_rate);
-        matrix_inplace_sub(network.weights[i], nabla_w[i]);
-        matrix_inplace_sub(network.biases[i], nabla_b[i]);
+    for(int i = 0; i < nabla_size; i++){
+        matrix_inplace_scale(nabla_w[i], -learning_rate / mini_batch_size);
+        matrix_inplace_scale(nabla_b[i], -learning_rate / mini_batch_size);
+        matrix_inplace_add(network.weights[i], nabla_w[i]);
+        matrix_inplace_add(network.biases[i], nabla_b[i]);
     }
 
     /* Cleanup */
@@ -176,5 +204,7 @@ void network_delete(Network * p_network){
     }
     free(p_network->weights);
     free(p_network->biases);
+    p_network->weights = NULL;
+    p_network->biases = NULL;
     p_network->layers = 0;
 }

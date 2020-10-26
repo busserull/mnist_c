@@ -21,7 +21,7 @@ Network network_new(
 
 Matrix network_feed(
     const Network network,
-    const Matrix vector
+    const Matrix input
 );
 
 void network_learn(

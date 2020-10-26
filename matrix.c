@@ -156,6 +156,7 @@ void matrix_print(const Matrix matrix){
 
 void matrix_delete(Matrix * p_matrix){
     free(p_matrix->data);
+    p_matrix->data = NULL;
     p_matrix->x = 0;
     p_matrix->y = 0;
 }
